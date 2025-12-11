@@ -3,105 +3,214 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rikunishi | Data Scientist</title>
+  <title>NBA Today | スコアとスタッツ</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="hero">
     <nav class="nav">
-      <span class="logo">Rikunishi</span>
+      <div class="brand">
+        <img src="ball-icon.svg" alt="NBA ball icon" class="logo-icon" />
+        <span class="logo">NBA Today</span>
+      </div>
       <div class="nav-links">
-        <a href="#profile">Profile</a>
-        <a href="#focus">Focus</a>
-        <a href="#hobby">Hobby</a>
+        <a href="#today">今日の結果</a>
+        <a href="#leaders">主要スタッツ</a>
+        <a href="#how">データ取得方針</a>
       </div>
     </nav>
 
+    <div class="top-ticker">
+      <div class="ticker-label">速報</div>
+      <div class="ticker-track" id="ticker-track"></div>
+    </div>
+
     <div class="hero-content">
-      <p class="eyebrow">Data Scientist / Story Architect</p>
-      <h1>データで未来を描く。</h1>
-      <p class="lead">
-        りくにしは、ビジネスの複雑さをデータで解きほぐし、体験として届けるデータサイエンティストです。
-        Appleのように研ぎ澄ましたシンプルさで、数字から物語を紡ぎます。
-      </p>
-      <div class="cta-group">
-        <a href="#profile" class="btn primary">Meet Rikunishi</a>
-        <a href="#focus" class="btn secondary">See the work</a>
+      <div class="hero-copy">
+        <p class="eyebrow">2025-12-10 & 12-09 | 試合結果</p>
+        <h1>NBA スコア & スタッツセンター</h1>
+        <p class="lead">
+          直近2日分の実試合結果をローカルDBに保存し表示。APIや本番DBに置き換えても同じフローで差し替えできます。
+        </p>
+        <div class="cta-group">
+          <a href="#today" class="btn primary">今日のスコア</a>
+          <a href="#leaders" class="btn secondary">スタッツリーダー</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <p class="panel-label">Pick of the Night</p>
+        <h3 id="hero-matchup">Thunder vs Suns</h3>
+        <p class="muted" id="hero-score">138 - 89 (OKC)</p>
+        <p class="muted tiny" id="hero-meta">Paycom Center | 2025-12-10</p>
       </div>
     </div>
   </header>
 
   <main>
-    <section id="profile" class="panel">
-      <p class="panel-label">Profile</p>
-      <h2>どんな課題にも、データというレンズを。</h2>
-      <p>
-        データサイエンティストとして、状況に応じたモデリング・分析・プロダクト化を推し進めています。組織の意思決定とユーザー体験を繋ぐ
-        “橋” のような存在でありたいと考えています。
-      </p>
-      <div class="stats">
+    <section id="today" class="panel">
+      <div class="section-head">
         <div>
-          <span class="stat-value">10+</span>
-          <span class="stat-label">プロジェクト</span>
+          <p class="panel-label">Scores</p>
+          <h2>最新の結果</h2>
+          <p class="muted">2025-12-10（上）と2025-12-09（下）の終了済みゲームを保存済みDBから表示。</p>
         </div>
-        <div>
-          <span class="stat-value">4</span>
-          <span class="stat-label">モデル領域</span>
-        </div>
-        <div>
-          <span class="stat-value">∞</span>
-          <span class="stat-label">好奇心</span>
+        <div class="chip-row">
+          <button class="btn chip" data-date="2025-12-10">12/10</button>
+          <button class="btn chip" data-date="2025-12-09">12/09</button>
+          <button class="btn chip" id="refresh">DB再読込</button>
         </div>
       </div>
+      <div id="games" class="games"></div>
     </section>
 
-    <section id="focus" class="grid">
-      <article class="card">
-        <p class="card-label">Specialty</p>
-        <h3>データ体験のデザイン</h3>
-        <p>
-          見た目の美しさと数理的な厳密さを両立するプロトタイプを素早く構築。仮説検証を高速に回すことで、
-          チーム全体に価値のある気づきを還元します。
-        </p>
-      </article>
-      <article class="card">
-        <p class="card-label">Workflow</p>
-        <h3>分析から実装まで一気通貫</h3>
-        <p>
-          統計解析、機械学習モデル設計、デプロイまでをカバー。洞察がダッシュボードやアプリに自然と組み込まれていく体験を重視しています。
-        </p>
-      </article>
-      <article class="card">
-        <p class="card-label">Philosophy</p>
-        <h3>シンプルに語る</h3>
-        <p>
-          複雑な結果ほど、誰もが理解できる言葉に落とし込みます。Appleのプレゼンのように、1つ1つのメッセージに意味を持たせます。
-        </p>
-      </article>
-    </section>
-
-    <section id="hobby" class="gallery">
-      <div class="gallery-copy">
-        <p class="panel-label">Hobby</p>
-        <h2>NBA観戦で磨く洞察力</h2>
-        <p>
-          流れるようなボールムーブメントと、選手の意思決定をデータで読み解くことが好きです。スタッツを追いかけながら、
-          試合の中にあるストーリーを見つける時間が創造性の源になっています。
-        </p>
+    <section id="leaders" class="panel">
+      <div class="section-head">
+        <div>
+          <p class="panel-label">Leaders</p>
+          <h2>主要スタッツリーダー</h2>
+          <p class="muted">ハイライト選手をカテゴリー別にピックアップ。</p>
+        </div>
+        <button class="btn chip" id="shuffle">入れ替え</button>
       </div>
-      <figure>
-        <img src="turtle_img.jpg" alt="静かな海とカメの写真" />
-        <figcaption>日常に静けさを取り戻す、お気に入りの1枚。</figcaption>
-      </figure>
+      <div id="leaderboard" class="leaders"></div>
+    </section>
+
+    <section id="how" class="panel">
+      <p class="panel-label">Data Strategy</p>
+      <h2>データ取得の切り替え方</h2>
+      <ul class="steps">
+        <li><strong>即時表示:</strong> フロントからオープンAPI（例: balldontlie）を呼び出す。CORS不可なら簡易プロキシを用意。</li>
+        <li><strong>キャッシュ:</strong> Node + SQLite で最新を保存し、ページ読み込み時はDB→APIの順で取得。</li>
+        <li><strong>定期更新:</strong> Cron/スケジューラで15分おきにAPI→DB更新。フロントは常にDBを読む。</li>
+      </ul>
+      <p class="muted">次のステップで実データソースを決めれば、このページにそのまま組み込みます。</p>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>© <span id="year"></span> Rikunishi. Crafted with intention.</p>
+    <p>© <span id="year"></span> NBA Today. Dummy data mode.</p>
   </footer>
 
   <script>
+    const gamesEl = document.getElementById("games");
+    const leaderboardEl = document.getElementById("leaderboard");
+    const tickerTrack = document.getElementById("ticker-track");
+    const heroMatchup = document.getElementById("hero-matchup");
+    const heroScore = document.getElementById("hero-score");
+    const heroMeta = document.getElementById("hero-meta");
+    let currentDate = "2025-12-10";
+
+    async function fetchGames(date) {
+      const url = date ? `/api/games?date=${date}` : "/api/games";
+      const res = await fetch(url);
+      return res.json();
+    }
+
+    async function fetchLeaders(gameId) {
+      const res = await fetch(`/api/leaders?game_id=${gameId}`);
+      return res.json();
+    }
+
+    function renderGames(data) {
+      gamesEl.innerHTML = data
+        .map(
+          (g) => `
+            <article class="game">
+              <div class="game-head">
+                <div>
+                  <p class="muted">${g.game_date} / ${g.venue ?? ""}</p>
+                  <p class="status">${g.status ?? ""}</p>
+                </div>
+                <div class="score">
+                  <span class="team">${g.away_team}</span>
+                  <span class="points">${g.away_score}</span>
+                  <span class="dash">-</span>
+                  <span class="points">${g.home_score}</span>
+                  <span class="team">${g.home_team}</span>
+                </div>
+              </div>
+              <div class="leaders-row" data-game-id=\"${g.id}\"></div>
+            </article>
+          `
+        )
+        .join("");
+    }
+
+    async function renderLeadersForGames(data) {
+      const leaderCards = [];
+      for (const g of data) {
+        const container = document.querySelector(`[data-game-id=\"${g.id}\"]`);
+        const leaders = await fetchLeaders(g.id);
+        const byCat = { PTS: "-", REB: "-", AST: "-" };
+        leaders.forEach((l) => {
+          byCat[l.category] = `${l.player} ${l.value}`;
+          leaderCards.push({
+            cat: l.category,
+            value: `${l.player} ${l.value}`,
+            game: `${g.away_team} @ ${g.home_team}`
+          });
+        });
+        container.innerHTML = `
+          <div><span class=\"label\">PTS</span><span>${byCat.PTS}</span></div>
+          <div><span class=\"label\">REB</span><span>${byCat.REB}</span></div>
+          <div><span class=\"label\">AST</span><span>${byCat.AST}</span></div>
+        `;
+      }
+      renderLeaderboard(leaderCards);
+    }
+
+    function renderLeaderboard(cards) {
+      const top = cards.slice(0, 6);
+      leaderboardEl.innerHTML = top
+        .map(
+          (l) => `
+            <div class="leader-card">
+              <p class="panel-label">${l.cat}</p>
+              <h3>${l.value}</h3>
+              <p class="muted">${l.game}</p>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    function renderTicker(data) {
+      const items = data
+        .map((g) => `${g.away_team} ${g.away_score} - ${g.home_score} ${g.home_team}`)
+        .join("   •   ");
+      tickerTrack.innerHTML = `<span>${items}</span><span aria-hidden=\"true\">${items}</span>`;
+      if (data.length) {
+        const top = data[0];
+        heroMatchup.textContent = `${top.away_team} @ ${top.home_team}`;
+        heroScore.textContent = `${top.away_score} - ${top.home_score}`;
+        heroMeta.textContent = `${top.venue ?? ""} | ${top.game_date}`;
+      }
+    }
+
+    async function loadDate(dateKey) {
+      const games = await fetchGames(dateKey);
+      renderGames(games);
+      await renderLeadersForGames(games);
+      const latest = await fetchGames("2025-12-10");
+      renderTicker(latest.length ? latest : games);
+    }
+
+    document.getElementById("refresh").addEventListener("click", () => loadDate(currentDate));
+
+    document.getElementById("shuffle").addEventListener("click", () => {
+      const cards = Array.from(document.querySelectorAll(".leader-card"));
+      cards.sort(() => Math.random() - 0.5).forEach((c) => leaderboardEl.appendChild(c));
+    });
+
+    document.querySelectorAll("[data-date]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        currentDate = btn.dataset.date;
+        loadDate(currentDate);
+      });
+    });
+
     document.getElementById("year").textContent = new Date().getFullYear();
+    loadDate(currentDate);
   </script>
 </body>
 </html>

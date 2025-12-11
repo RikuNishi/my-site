@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Basketball icon">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop stop-color="#ff8c37" offset="0%"/>
+      <stop stop-color="#ff6b00" offset="50%"/>
+      <stop stop-color="#f2451c" offset="100%"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#g)" stroke="#0f0f0f" stroke-width="3"/>
+  <path d="M2 32h60" stroke="#0f0f0f" stroke-width="4" stroke-linecap="round"/>
+  <path d="M32 2v60" stroke="#0f0f0f" stroke-width="4" stroke-linecap="round"/>
+  <path d="M10 10c14 10 14 34 0 44" stroke="#0f0f0f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M54 10c-14 10-14 34 0 44" stroke="#0f0f0f" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>
