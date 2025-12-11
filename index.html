@@ -3,29 +3,105 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>りくにし | 自己紹介</title>
+  <title>Rikunishi | Data Scientist</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="main.js" defer></script>
 </head>
 <body>
+  <header class="hero">
+    <nav class="nav">
+      <span class="logo">Rikunishi</span>
+      <div class="nav-links">
+        <a href="#profile">Profile</a>
+        <a href="#focus">Focus</a>
+        <a href="#hobby">Hobby</a>
+      </div>
+    </nav>
+
+    <div class="hero-content">
+      <p class="eyebrow">Data Scientist / Story Architect</p>
+      <h1>データで未来を描く。</h1>
+      <p class="lead">
+        りくにしは、ビジネスの複雑さをデータで解きほぐし、体験として届けるデータサイエンティストです。
+        Appleのように研ぎ澄ましたシンプルさで、数字から物語を紡ぎます。
+      </p>
+      <div class="cta-group">
+        <a href="#profile" class="btn primary">Meet Rikunishi</a>
+        <a href="#focus" class="btn secondary">See the work</a>
+      </div>
+    </div>
+  </header>
+
   <main>
-    <p class="highlight"><span class="typewriter" data-text="こんにちは、りくにしです。"></span></p>
-    <h1>りくにし</h1>
-
-    <figure>
-      <img src="turtle_img.jpg" alt="海を泳ぐカメ" />
-      <figcaption>最近のお気に入りの一枚。</figcaption>
-    </figure>
-
-    <section>
-      <h2>プロフィール</h2>
-      <p>データサイエンティストとして、データを活用して課題を解決する仕事をしています。プロジェクトの状況に合わせて、分析・モデリング・プロダクト化まで柔軟に取り組むのが好きです。</p>
+    <section id="profile" class="panel">
+      <p class="panel-label">Profile</p>
+      <h2>どんな課題にも、データというレンズを。</h2>
+      <p>
+        データサイエンティストとして、状況に応じたモデリング・分析・プロダクト化を推し進めています。組織の意思決定とユーザー体験を繋ぐ
+        “橋” のような存在でありたいと考えています。
+      </p>
+      <div class="stats">
+        <div>
+          <span class="stat-value">10+</span>
+          <span class="stat-label">プロジェクト</span>
+        </div>
+        <div>
+          <span class="stat-value">4</span>
+          <span class="stat-label">モデル領域</span>
+        </div>
+        <div>
+          <span class="stat-value">∞</span>
+          <span class="stat-label">好奇心</span>
+        </div>
+      </div>
     </section>
 
-    <section>
-      <h2>趣味</h2>
-      <p>NBA観戦が一番の楽しみです。試合のスタッツを追いながら、チームの戦術や選手の成長を見守る時間が癒やしになっています。</p>
+    <section id="focus" class="grid">
+      <article class="card">
+        <p class="card-label">Specialty</p>
+        <h3>データ体験のデザイン</h3>
+        <p>
+          見た目の美しさと数理的な厳密さを両立するプロトタイプを素早く構築。仮説検証を高速に回すことで、
+          チーム全体に価値のある気づきを還元します。
+        </p>
+      </article>
+      <article class="card">
+        <p class="card-label">Workflow</p>
+        <h3>分析から実装まで一気通貫</h3>
+        <p>
+          統計解析、機械学習モデル設計、デプロイまでをカバー。洞察がダッシュボードやアプリに自然と組み込まれていく体験を重視しています。
+        </p>
+      </article>
+      <article class="card">
+        <p class="card-label">Philosophy</p>
+        <h3>シンプルに語る</h3>
+        <p>
+          複雑な結果ほど、誰もが理解できる言葉に落とし込みます。Appleのプレゼンのように、1つ1つのメッセージに意味を持たせます。
+        </p>
+      </article>
+    </section>
+
+    <section id="hobby" class="gallery">
+      <div class="gallery-copy">
+        <p class="panel-label">Hobby</p>
+        <h2>NBA観戦で磨く洞察力</h2>
+        <p>
+          流れるようなボールムーブメントと、選手の意思決定をデータで読み解くことが好きです。スタッツを追いかけながら、
+          試合の中にあるストーリーを見つける時間が創造性の源になっています。
+        </p>
+      </div>
+      <figure>
+        <img src="turtle_img.jpg" alt="静かな海とカメの写真" />
+        <figcaption>日常に静けさを取り戻す、お気に入りの1枚。</figcaption>
+      </figure>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <p>© <span id="year"></span> Rikunishi. Crafted with intention.</p>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
