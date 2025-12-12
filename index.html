@@ -22,16 +22,16 @@
 
     <div class="top-ticker">
       <div class="ticker-label">速報</div>
-      <div class="ticker-track" id="ticker-track"></div>
+      <div class="ticker-viewport">
+        <div class="ticker-track" id="ticker-track"></div>
+      </div>
     </div>
 
     <div class="hero-content">
       <div class="hero-copy">
         <p class="eyebrow">2025-12-10 & 12-09 | 試合結果</p>
         <h1>NBA スコア & スタッツセンター</h1>
-        <p class="lead">
-          直近2日分の実試合結果をローカルDBに保存し表示。APIや本番DBに置き換えても同じフローで差し替えできます。
-        </p>
+        <p class="lead">最新の公式スコアとスタッツをワンストップでチェックできます。</p>
         <div class="cta-group">
           <a href="#today" class="btn primary">今日のスコア</a>
           <a href="#leaders" class="btn secondary">スタッツリーダー</a>
@@ -52,12 +52,12 @@
         <div>
           <p class="panel-label">Scores</p>
           <h2>最新の結果</h2>
-          <p class="muted">2025-12-10（上）と2025-12-09（下）の終了済みゲームを保存済みDBから表示。</p>
+          <p class="muted">日付・ステータスで絞り込みできます。クリックで詳細スタッツを展開。</p>
         </div>
-        <div class="chip-row">
-          <button class="btn chip" data-date="2025-12-10">12/10</button>
-          <button class="btn chip" data-date="2025-12-09">12/09</button>
-          <button class="btn chip" id="refresh">DB再読込</button>
+        <div class="filters">
+          <div class="chip-row" id="date-chips"></div>
+          <div class="chip-row" id="status-chips"></div>
+          <button class="btn chip" id="refresh">再読込</button>
         </div>
       </div>
       <div id="games" class="games"></div>
@@ -68,41 +68,52 @@
         <div>
           <p class="panel-label">Leaders</p>
           <h2>主要スタッツリーダー</h2>
-          <p class="muted">ハイライト選手をカテゴリー別にピックアップ。</p>
+          <p class="muted">日ごとのPTS/REB/AST合算トップを表示します。</p>
         </div>
-        <button class="btn chip" id="shuffle">入れ替え</button>
+        <div class="leader-meta" id="leader-meta"></div>
       </div>
       <div id="leaderboard" class="leaders"></div>
     </section>
 
     <section id="how" class="panel">
-      <p class="panel-label">Data Strategy</p>
-      <h2>データ取得の切り替え方</h2>
+      <p class="panel-label">Data Updates</p>
+      <h2>データの扱い</h2>
       <ul class="steps">
-        <li><strong>即時表示:</strong> フロントからオープンAPI（例: balldontlie）を呼び出す。CORS不可なら簡易プロキシを用意。</li>
-        <li><strong>キャッシュ:</strong> Node + SQLite で最新を保存し、ページ読み込み時はDB→APIの順で取得。</li>
-        <li><strong>定期更新:</strong> Cron/スケジューラで15分おきにAPI→DB更新。フロントは常にDBを読む。</li>
+        <li><strong>公式準拠:</strong> NBA公式速報をもとにスコアと主要スタッツを反映。</li>
+        <li><strong>キャッシュ運用:</strong> 最新分を保持し、高速に再表示できるよう最適化。</li>
+        <li><strong>定期更新:</strong> 数分おきに自動でチェックし、画面に反映します。</li>
       </ul>
-      <p class="muted">次のステップで実データソースを決めれば、このページにそのまま組み込みます。</p>
+      <p class="muted">実データ接続後も同じUIでシームレスに表示します。</p>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>© <span id="year"></span> NBA Today. Dummy data mode.</p>
+    <p>© <span id="year"></span> NBA Today.</p>
   </footer>
 
   <script>
     const gamesEl = document.getElementById("games");
     const leaderboardEl = document.getElementById("leaderboard");
+    const leaderMeta = document.getElementById("leader-meta");
     const tickerTrack = document.getElementById("ticker-track");
     const heroMatchup = document.getElementById("hero-matchup");
     const heroScore = document.getElementById("hero-score");
     const heroMeta = document.getElementById("hero-meta");
-    let currentDate = "2025-12-10";
+    let currentDate = null;
+    let currentStatus = null;
+    let allGamesCache = [];
+    const detailCache = new Map();
+    const detailDataCache = new Map();
+    const headshotOverrides = new Map([
+      ["ルカ・ドンチッチ", "https://cdn.nba.com/headshots/nba/latest/1040x760/1629029.png"],
+      ["デズモンド・ベイン", "https://cdn.nba.com/headshots/nba/latest/1040x760/1630217.png"],
+      ["ビクター・ウェンバンヤマ", "https://cdn.nba.com/headshots/nba/latest/1040x760/1641703.png"]
+    ]);
 
     async function fetchGames(date) {
       const url = date ? `/api/games?date=${date}` : "/api/games";
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`games fetch failed: ${res.status}`);
       return res.json();
     }
 
@@ -112,10 +123,15 @@
     }
 
     function renderGames(data) {
+      if (!data.length) {
+        gamesEl.innerHTML = `<p class="muted">ゲームデータを取得できませんでした。</p>`;
+        return;
+      }
+
       gamesEl.innerHTML = data
         .map(
           (g) => `
-            <article class="game">
+            <article class="game clickable" data-expand="${g.id}">
               <div class="game-head">
                 <div>
                   <p class="muted">${g.game_date} / ${g.venue ?? ""}</p>
@@ -129,55 +145,37 @@
                   <span class="team">${g.home_team}</span>
                 </div>
               </div>
-              <div class="leaders-row" data-game-id=\"${g.id}\"></div>
+              <div class="game-lower">
+                <div class="leaders-row" data-game-id=\"${g.id}\"></div>
+                <div class="top-performers" data-top=\"${g.id}\"></div>
+              </div>
+              <div class="game-detail" id="detail-${g.id}" hidden></div>
             </article>
           `
         )
         .join("");
-    }
 
-    async function renderLeadersForGames(data) {
-      const leaderCards = [];
-      for (const g of data) {
-        const container = document.querySelector(`[data-game-id=\"${g.id}\"]`);
-        const leaders = await fetchLeaders(g.id);
-        const byCat = { PTS: "-", REB: "-", AST: "-" };
-        leaders.forEach((l) => {
-          byCat[l.category] = `${l.player} ${l.value}`;
-          leaderCards.push({
-            cat: l.category,
-            value: `${l.player} ${l.value}`,
-            game: `${g.away_team} @ ${g.home_team}`
-          });
+      document.querySelectorAll("[data-expand]").forEach((card) => {
+        card.addEventListener("click", async () => {
+          const id = Number(card.dataset.expand);
+          const detailBox = document.getElementById(`detail-${id}`);
+          const open = !detailBox.hasAttribute("hidden");
+          document.querySelectorAll(".game-detail").forEach((el) => el.setAttribute("hidden", ""));
+          if (open) return;
+          await renderDetail(id, detailBox);
+          detailBox.removeAttribute("hidden");
         });
-        container.innerHTML = `
-          <div><span class=\"label\">PTS</span><span>${byCat.PTS}</span></div>
-          <div><span class=\"label\">REB</span><span>${byCat.REB}</span></div>
-          <div><span class=\"label\">AST</span><span>${byCat.AST}</span></div>
-        `;
-      }
-      renderLeaderboard(leaderCards);
-    }
-
-    function renderLeaderboard(cards) {
-      const top = cards.slice(0, 6);
-      leaderboardEl.innerHTML = top
-        .map(
-          (l) => `
-            <div class="leader-card">
-              <p class="panel-label">${l.cat}</p>
-              <h3>${l.value}</h3>
-              <p class="muted">${l.game}</p>
-            </div>
-          `
-        )
-        .join("");
+      });
     }
 
     function renderTicker(data) {
+      tickerX = null;
       const items = data
-        .map((g) => `${g.away_team} ${g.away_score} - ${g.home_score} ${g.home_team}`)
-        .join("   •   ");
+        .map(
+          (g) =>
+            `● ${g.game_date} ${g.away_team} ${g.away_score} - ${g.home_score} ${g.home_team}${g.status ? ` (${g.status})` : ""}`
+        )
+        .join("   ");
       tickerTrack.innerHTML = `<span>${items}</span><span aria-hidden=\"true\">${items}</span>`;
       if (data.length) {
         const top = data[0];
@@ -187,30 +185,272 @@
       }
     }
 
-    async function loadDate(dateKey) {
-      const games = await fetchGames(dateKey);
-      renderGames(games);
-      await renderLeadersForGames(games);
-      const latest = await fetchGames("2025-12-10");
-      renderTicker(latest.length ? latest : games);
+    // JSベースのティッカー流し（左→右）
+    let tickerX = null;
+    const tickerSpeed = 60; // px / 秒
+    function startTicker() {
+      const step = (timestamp) => {
+        if (!step.last) step.last = timestamp;
+        const delta = (timestamp - step.last) / 1000;
+        step.last = timestamp;
+        const trackWidth = tickerTrack.scrollWidth / 2 || 1; // 2本連結しているため半分が1周期
+        if (tickerX === null) tickerX = -trackWidth;
+        tickerX += tickerSpeed * delta;
+        if (tickerX >= 0) tickerX = -trackWidth;
+        tickerTrack.style.transform = `translateX(${tickerX}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
     }
 
-    document.getElementById("refresh").addEventListener("click", () => loadDate(currentDate));
+    async function applyFilters() {
+      let filtered = allGamesCache;
+      if (currentDate) filtered = filtered.filter((g) => g.game_date === currentDate);
+      if (currentStatus) filtered = filtered.filter((g) => (g.status ?? "") === currentStatus);
+      renderGames(filtered);
+      await renderLeadersForGames(filtered);
+      await renderDailyLeaders(currentDate);
 
-    document.getElementById("shuffle").addEventListener("click", () => {
-      const cards = Array.from(document.querySelectorAll(".leader-card"));
-      cards.sort(() => Math.random() - 0.5).forEach((c) => leaderboardEl.appendChild(c));
-    });
+      const latestDate = allGamesCache[0]?.game_date;
+      const tapeSource = latestDate ? allGamesCache.filter((g) => g.game_date === latestDate) : allGamesCache;
+      renderTicker(tapeSource.length ? tapeSource : filtered);
+    }
 
-    document.querySelectorAll("[data-date]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        currentDate = btn.dataset.date;
-        loadDate(currentDate);
-      });
-    });
+    function renderFilterChips() {
+      const dateWrap = document.getElementById("date-chips");
+      const statusWrap = document.getElementById("status-chips");
+      const uniqueDates = [...new Set(allGamesCache.map((g) => g.game_date))];
+      const statuses = [...new Set(allGamesCache.map((g) => g.status ?? ""))].filter(Boolean);
+
+      dateWrap.innerHTML = uniqueDates
+        .map((d) => `<button class="btn chip" data-date="${d}">${d.slice(5)}</button>`)
+        .join("");
+      statusWrap.innerHTML =
+        `<button class="btn chip" data-status="">全ステータス</button>` +
+        statuses.map((s) => `<button class="btn chip" data-status="${s}">${s}</button>`).join("");
+
+      dateWrap.querySelectorAll("[data-date]").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          currentDate = btn.dataset.date;
+          applyFilters();
+        })
+      );
+      statusWrap.querySelectorAll("[data-status]").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          currentStatus = btn.dataset.status || null;
+          applyFilters();
+        })
+      );
+    }
+
+    async function loadInitial() {
+      try {
+        allGamesCache = await fetchGames();
+        currentDate = allGamesCache[0]?.game_date ?? null;
+        renderFilterChips();
+        await applyFilters();
+      } catch (err) {
+        gamesEl.innerHTML = `<p class="muted">データ取得でエラーが発生しました: ${err.message}</p>`;
+      }
+    }
+
+    document.getElementById("refresh").addEventListener("click", () => loadInitial());
 
     document.getElementById("year").textContent = new Date().getFullYear();
-    loadDate(currentDate);
+    loadInitial();
+    startTicker();
+
+    async function renderDetail(gameId, container) {
+      if (detailCache.has(gameId)) {
+        container.innerHTML = detailCache.get(gameId);
+        return;
+      }
+      const data = await getDetailData(gameId);
+      if (!data) {
+        container.innerHTML = `<p class="muted tiny">データを取得できませんでした。</p>`;
+        return;
+      }
+      const summary = data.summary
+        .map(
+          (s) => `
+            <div class="summary-card">
+              <p class="label">${s.label}</p>
+              <div class="summary-pair">
+                <span class="home">${s.home}</span>
+                <span class="away">${s.away}</span>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+
+      const teamBlocks = data.teams
+        .map(
+          (team) => `
+            <div class="team-block">
+              <div class="team-head"><span>${team.name}</span><span class="muted">${team.side === "home" ? "HOME" : "AWAY"}</span></div>
+              <div class="headstrip">
+                ${team.players
+                  .map(
+                    (p) => `<img src="${p.headshot}" alt="${p.name}" loading="lazy" title="${p.name}" class="pill-thumb" />`
+                  )
+                  .join("")}
+              </div>
+              <div class="player-table">
+                ${team.players
+                  .map(
+                    (p) => `
+                      <div class="player-row">
+                        <img src="${p.headshot}" alt="${p.name}" loading="lazy" />
+                        <div class="player-meta">
+                          <p class="player-name">${p.name}</p>
+                          <p class="muted tiny">${p.pos}</p>
+                        </div>
+                        <div class="player-stats">
+                          <span>${p.pts} PTS</span>
+                          <span>${p.reb} REB</span>
+                          <span>${p.ast} AST</span>
+                          <span class="muted tiny">FG ${p.fg} | 3P ${p.three} | FT ${p.ft}</span>
+                        </div>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `
+        )
+        .join("");
+
+      const html = `
+        <div class="detail-grid">
+          <div class="summary-grid">${summary}</div>
+          <div class="teams-grid">${teamBlocks}</div>
+        </div>
+      `;
+      detailCache.set(gameId, html);
+      container.innerHTML = html;
+    }
+
+    async function getDetailData(gameId) {
+      if (detailDataCache.has(gameId)) return detailDataCache.get(gameId);
+      const res = await fetch(`/api/games/${gameId}/stats`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      detailDataCache.set(gameId, data);
+      return data;
+    }
+
+    async function renderLeadersForGames(data) {
+      for (const g of data) {
+        const container = document.querySelector(`[data-game-id=\"${g.id}\"]`);
+        const leaders = await fetchLeaders(g.id);
+        const byCat = { PTS: "-", REB: "-", AST: "-" };
+        leaders.forEach((l) => {
+          byCat[l.category] = `${l.player} ${l.value}`;
+        });
+        if (container) {
+          container.innerHTML = `
+            <div><span class=\"label\">PTS</span><span>${byCat.PTS}</span></div>
+            <div><span class=\"label\">REB</span><span>${byCat.REB}</span></div>
+            <div><span class=\"label\">AST</span><span>${byCat.AST}</span></div>
+          `;
+        }
+
+        const tpBox = document.querySelector(`[data-top=\"${g.id}\"]`);
+        if (tpBox) {
+          const detail = await getDetailData(g.id);
+          const headshots = new Map();
+          detail?.teams.forEach((t) => t.players.forEach((p) => headshots.set(p.name, p.headshot)));
+          const top3 = leaders.slice(0, 3);
+          tpBox.innerHTML = top3
+            .map((l) => {
+              const img = headshots.get(l.player) ?? headshotOverrides.get(l.player) ?? "ball-icon.svg";
+              return `
+                <div class="tp-row">
+                  <img src="${img ?? 'ball-icon.svg'}" alt="${l.player}" loading="lazy" />
+                  <div>
+                    <p class="player-name">${l.player}</p>
+                    <p class="muted tiny">${l.category} ${l.value}</p>
+                  </div>
+                </div>
+              `;
+            })
+            .join("");
+        }
+      }
+    }
+
+    async function renderDailyLeaders(date) {
+      if (!date) {
+        leaderboardEl.innerHTML = `<p class="muted">対象日が選択されていません。</p>`;
+        leaderMeta.textContent = "";
+        return;
+      }
+      const todaysGames = allGamesCache.filter((g) => g.game_date === date);
+      leaderMeta.textContent = `表示日: ${date}`;
+      if (!todaysGames.length) {
+        leaderboardEl.innerHTML = `<p class="muted">該当日のゲームがありません。</p>`;
+        return;
+      }
+
+      const totals = { PTS: new Map(), REB: new Map(), AST: new Map() };
+      for (const g of todaysGames) {
+        const detail = await getDetailData(g.id);
+        if (!detail) continue;
+        detail.teams.forEach((team) => {
+          team.players.forEach((p) => {
+            accumulate(totals.PTS, p.name, Number(p.pts), team.name);
+            accumulate(totals.REB, p.name, Number(p.reb), team.name);
+            accumulate(totals.AST, p.name, Number(p.ast), team.name);
+          });
+        });
+      }
+
+      const categories = ["PTS", "REB", "AST"];
+      leaderboardEl.innerHTML = categories
+        .map((cat) => {
+          const list = formatLeaders(totals[cat]);
+          if (!list.length) return "";
+          return `
+            <div class="leader-card">
+              <p class="panel-label">${cat}</p>
+              <div class="leader-list">
+                ${list
+                  .map(
+                    (entry, idx) => `
+                      <div class="leader-item">
+                        <span class="leader-rank">#${idx + 1}</span>
+                        <div>
+                          <p class="player-name">${entry.name}</p>
+                          <p class="muted tiny">${entry.team}</p>
+                        </div>
+                        <span class="leader-value">${entry.value}</span>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      function accumulate(map, player, value, team) {
+        if (Number.isNaN(value)) return;
+        const record = map.get(player) ?? { value: 0, team };
+        record.value += value;
+        record.team = team;
+        map.set(player, record);
+      }
+
+      function formatLeaders(map) {
+        return [...map.entries()]
+          .map(([name, info]) => ({ name, ...info }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 5);
+      }
+    }
   </script>
 </body>
 </html>

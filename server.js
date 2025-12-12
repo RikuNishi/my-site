@@ -1,9 +1,13 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const db = new sqlite3.Database(path.join(__dirname, 'data', 'nba.db'));
+const playerStats = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'data', 'player-stats.json'), 'utf8')
+);
 
 app.use(express.static(__dirname));
 
@@ -29,6 +33,13 @@ app.get('/api/leaders', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
+});
+
+app.get('/api/games/:id/stats', (req, res) => {
+  const gameId = Number(req.params.id);
+  const detail = playerStats.find((g) => g.game_id === gameId);
+  if (!detail) return res.status(404).json({ error: 'game not found' });
+  res.json(detail);
 });
 
 const PORT = process.env.PORT || 3000;
